@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
 
   # ── Step 1: obtain Let's Encrypt certificate (run once) ──────────────────
