@@ -1,11 +1,14 @@
 const express = require('express');
 const axios = require('axios');
+const https = require('https');
 const prisma = require('../utils/prisma');
 const authMiddleware = require('../middleware/auth.middleware');
 const { createMarzbanService } = require('../services/marzban.service');
 const { validateUrl } = require('../utils/urlValidator');
 const dns = require('dns').promises;
 const net = require('net');
+
+const insecureHttpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const router = express.Router();
 
@@ -153,10 +156,11 @@ router.post('/connect', authMiddleware, async function(req, res) {
     params.append('username', username);
     params.append('password', password);
     
-    var authRes = await axios. post(endpointUrl + '/api/admin/token', params, {
+    var authRes = await axios.post(endpointUrl + '/api/admin/token', params, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       timeout: 10000,
-      maxRedirects: 0  // Prevent redirect-based SSRF attacks
+      maxRedirects: 0,
+      httpsAgent: insecureHttpsAgent
     });
     
     if (! authRes.data || !authRes.data.access_token) {
