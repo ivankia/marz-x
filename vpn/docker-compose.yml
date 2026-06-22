@@ -45,9 +45,14 @@ services:
       - SERVICE_PORT=${SERVICE_PORT:-62050}
       - XRAY_API_PORT=${XRAY_API_PORT:-62051}
       - SERVICE_PROTOCOL=rpyc_tls
-      - SSL_CERT_FILE=/var/lib/marzban/certs/fullchain.pem
-      - SSL_KEY_FILE=/var/lib/marzban/certs/privkey.pem
+      # Node generates its own self-signed service certs in the writable data volume.
+      # Let's Encrypt certs for Xray inbounds are mounted separately below.
+      - SSL_CERT_FILE=/var/lib/marzban-node/ssl_cert.pem
+      - SSL_KEY_FILE=/var/lib/marzban-node/ssl_key.pem
     volumes:
+      # Writable: node data + auto-generated service SSL certs
       - ./data:/var/lib/marzban-node
+      # Read-only: Let's Encrypt certs for Xray TLS inbounds (obtain via certbot profile first)
       - ./certs/live/${VPN_DOMAIN}:/var/lib/marzban/certs:ro
+      # Xray inbound config (references /var/lib/marzban/certs/*)
       - ./xray_config.json:/etc/opt/marzban/xray_config.json:ro
