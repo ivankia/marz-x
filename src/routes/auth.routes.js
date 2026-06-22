@@ -110,7 +110,10 @@ router.post('/token', authRateLimiter, async function(req, res) {
       return res.status(401).json({ error: 'invalid_grant', error_description: 'Invalid username or password' });
     }
 
-    var token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '3d' });
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ error: 'server_error', error_description: 'JWT_SECRET is not configured' });
+    }
+    var token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '3d' });
 
     // OAuth2 standard response format
     res.json({
@@ -186,13 +189,16 @@ router.post('/login', authRateLimiter, async function(req, res) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    var token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '3d' });
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ error: 'JWT_SECRET is not configured' });
+    }
+    var token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '3d' });
 
     res.json({
-      user: { 
-        id: user.id, 
-        username: user.username || user.email, 
-        name: user.name 
+      user: {
+        id: user.id,
+        username: user.username || user.email,
+        name: user.name
       },
       token: token,
     });

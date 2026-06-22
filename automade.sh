@@ -221,7 +221,6 @@ services:
       - ./data:/app/data
       - ./certs:/etc/letsencrypt
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .env
 EOF

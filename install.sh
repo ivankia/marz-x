@@ -221,7 +221,6 @@ services:
       - ./certs:/etc/letsencrypt
       - ./nginx.conf:/etc/nginx/nginx.conf
       - /var/lib/marzban:/var/lib/marzban
-      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .env
 EOF
@@ -960,34 +959,29 @@ HOOK
     chmod +x /etc/letsencrypt/renewal-hooks/post/20-marzban-cert-sync.sh
 
     # ------------------------------------------------
-    # FIREWALL DISABLE (AS REQUESTED) - do BEFORE restart
+    # FIREWALL: open required ports, keep UFW enabled
     # ------------------------------------------------
-    echo "Disabling firewall to avoid port blocking..."
+    echo "Configuring firewall rules..."
 
     if command -v ufw >/dev/null 2>&1; then
-      ufw disable >/dev/null 2>&1 || true
-      echo "UFW disabled"
+      ufw allow 22/tcp   comment 'SSH'             2>/dev/null || true
+      ufw allow 80/tcp   comment 'HTTP/Certbot'    2>/dev/null || true
+      ufw allow 443/tcp  comment 'HTTPS/VLESS TLS' 2>/dev/null || true
+      ufw allow "${HTTPS_PORT}/tcp" comment 'Dashboard' 2>/dev/null || true
+      ufw allow 8000/tcp comment 'Marzban panel'   2>/dev/null || true
+      ufw allow 8080/tcp comment 'VMess WS'        2>/dev/null || true
+      ufw allow 8443/tcp comment 'VMess WS TLS'    2>/dev/null || true
+      ufw allow 8880/tcp comment 'VLESS WS'        2>/dev/null || true
+      ufw allow 2053/tcp comment 'VLESS gRPC TLS'  2>/dev/null || true
+      ufw allow 2087/tcp comment 'Trojan WS TLS'   2>/dev/null || true
+      ufw allow 2096/tcp comment 'Trojan TCP TLS'  2>/dev/null || true
+      ufw allow 1080/tcp comment 'Shadowsocks TCP' 2>/dev/null || true
+      ufw allow 1080/udp comment 'Shadowsocks UDP' 2>/dev/null || true
+      ufw allow 62050/tcp comment 'Marzban node'   2>/dev/null || true
+      ufw --force enable >/dev/null 2>&1 || true
+      echo "[OK] UFW configured with required ports"
     else
-      echo "[INFO] UFW not installed"
-    fi
-
-    if systemctl list-unit-files 2>/dev/null | grep -q '^firewalld\.service'; then
-      systemctl stop firewalld >/dev/null 2>&1 || true
-      systemctl disable firewalld >/dev/null 2>&1 || true
-      echo "firewalld stopped and disabled"
-    fi
-
-    if command -v iptables >/dev/null 2>&1; then
-      iptables -F || true
-      iptables -X || true
-      iptables -t nat -F || true
-      iptables -t nat -X || true
-      iptables -t mangle -F || true
-      iptables -t mangle -X || true
-      iptables -P INPUT ACCEPT || true
-      iptables -P FORWARD ACCEPT || true
-      iptables -P OUTPUT ACCEPT || true
-      echo "iptables flushed + policies set to ACCEPT"
+      echo "[INFO] UFW not installed — skipping firewall config"
     fi
 
     # ------------------------------------------------
