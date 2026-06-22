@@ -16,7 +16,7 @@ error()  { echo -e "${RED}[prepare]${NC} $1" >&2; exit 1; }
 section(){ echo -e "\n${BLUE}══════════════════════════════════════════${NC}"; echo -e "${BLUE}  $1${NC}"; echo -e "${BLUE}══════════════════════════════════════════${NC}"; }
 
 # ── Root check ─────────────────────────────────────────────────────────────────
-if [ "$EUID" -ne 0 ]; then
+if [ "$(id -u)" -ne 0 ]; then
   error "Run as root: sudo bash vpn/prepare.sh"
 fi
 
