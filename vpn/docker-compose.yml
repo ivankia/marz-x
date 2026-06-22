@@ -44,11 +44,12 @@ services:
     environment:
       - SERVICE_PORT=${SERVICE_PORT:-62050}
       - XRAY_API_PORT=${XRAY_API_PORT:-62051}
-      - SERVICE_PROTOCOL=rpyc_tls
-      # Node generates its own self-signed service certs in the writable data volume.
-      # Let's Encrypt certs for Xray inbounds are mounted separately below.
-      - SSL_CERT_FILE=/var/lib/marzban-node/ssl_cert.pem
-      - SSL_KEY_FILE=/var/lib/marzban-node/ssl_key.pem
+      - SERVICE_PROTOCOL=rpyc
+      # SSL_CLIENT_CERT_FILE restricts which panel can connect to this node.
+      # Copy the certificate from Marzban panel → Settings → Nodes and paste
+      # its value into vpn/.env as SSL_CLIENT_CERT_FILE=/var/lib/marzban-node/client_cert.pem,
+      # then write the cert content to that file.
+      - SSL_CLIENT_CERT_FILE=${SSL_CLIENT_CERT_FILE:-}
     volumes:
       # Writable: node data + auto-generated service SSL certs
       - ./data:/var/lib/marzban-node
