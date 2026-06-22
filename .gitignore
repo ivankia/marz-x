@@ -1,0 +1,18 @@
+# Environment files
+.env
+vpn/.env
+
+# VPN runtime data and TLS certs
+vpn/data/
+vpn/certs/
+
+# Node.js
+node_modules/
+
+# Build output
+dist/
+
+# Database
+*.sqlite
+*.db
+data/

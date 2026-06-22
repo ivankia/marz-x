@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+
+  # ── Step 1: obtain Let's Encrypt certificate (run once) ──────────────────
+  # Usage: docker compose --profile certbot up certbot
+  certbot:
+    image: certbot/certbot:latest
+    container_name: vpn-certbot
+    volumes:
+      - ./certs:/etc/letsencrypt
+    command: >
+      certonly --standalone
+      --non-interactive
+      --agree-tos
+      --email ${ADMIN_EMAIL}
+      -d ${VPN_DOMAIN}
+    ports:
+      - "80:80"
+    profiles:
+      - certbot
+
+  # ── Certificate renewal (run via cron or manually) ───────────────────────
+  # Usage: docker compose --profile certbot-renew up certbot-renew
+  certbot-renew:
+    image: certbot/certbot:latest
+    container_name: vpn-certbot-renew
+    volumes:
+      - ./certs:/etc/letsencrypt
+    command: renew --standalone
+    ports:
+      - "80:80"
+    profiles:
+      - certbot-renew
+
+  # ── Marzban node ─────────────────────────────────────────────────────────
+  marzban-node:
+    image: gozargah/marzban-node:latest
+    container_name: marzban-node
+    restart: always
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      - SERVICE_PORT=${SERVICE_PORT:-62050}
+      - XRAY_API_PORT=${XRAY_API_PORT:-62051}
+      - SERVICE_PROTOCOL=rpyc_tls
+      - SSL_CERT_FILE=/var/lib/marzban/certs/fullchain.pem
+      - SSL_KEY_FILE=/var/lib/marzban/certs/privkey.pem
+    volumes:
+      - ./data:/var/lib/marzban-node
+      - ./certs/live/${VPN_DOMAIN}:/var/lib/marzban/certs:ro
+      - ./xray_config.json:/etc/opt/marzban/xray_config.json:ro

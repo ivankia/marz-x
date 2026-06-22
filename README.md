@@ -108,6 +108,115 @@ The installer will automatically:
 ---
 
 
+---
+
+## 🛡️ VPN Node (Marzban-Node + Xray)
+
+The `vpn/` directory contains a standalone **Marzban node** powered by Xray.  
+It runs as a separate Docker Compose stack, independent of the main dashboard.
+
+### Supported Protocols
+
+| Protocol  | Transport | TLS | Port |
+|-----------|-----------|-----|------|
+| VLESS     | WebSocket | ✅  | 443  |
+| VLESS     | gRPC      | ✅  | 2053 |
+| VLESS     | WebSocket | ❌  | 8880 |
+| VMess     | WebSocket | ✅  | 8443 |
+| VMess     | WebSocket | ❌  | 8080 |
+| Trojan    | WebSocket | ✅  | 2087 |
+| Trojan    | TCP       | ✅  | 2096 |
+| Shadowsocks | TCP/UDP | ❌  | 1080 |
+
+### Prerequisites
+
+- Docker & Docker Compose installed
+- A domain name with DNS `A` record pointing to this server
+- Port **80** free during certificate issuance (certbot standalone)
+- Ports **443, 62050, 8080, 8443, 8880, 2053, 2087, 2096, 1080** open in firewall
+
+### Setup
+
+**1. Run the setup script** (creates `vpn/.env`, generates `XRAY_UUID`):
+
+```bash
+bash vpn/setup.sh
+```
+
+**2. Edit `vpn/.env`** and fill in:
+
+```env
+VPN_DOMAIN=vpn.yourdomain.com
+ADMIN_EMAIL=you@example.com
+PANEL_API_URL=https://panel.yourdomain.com
+```
+
+### TLS Certificate
+
+> **Note:** Stop any service using port 80 before running certbot.
+
+**Obtain certificate (run once):**
+
+```bash
+docker compose -f vpn/docker-compose.yml --profile certbot up certbot
+```
+
+Certificates are stored in `vpn/certs/live/<VPN_DOMAIN>/`.
+
+**Renew certificate (run periodically or via cron):**
+
+```bash
+docker compose -f vpn/docker-compose.yml --profile certbot-renew up certbot-renew
+```
+
+Add to crontab for automatic renewal every 60 days:
+
+```cron
+0 3 1 */2 * cd /path/to/marz-x && docker compose -f vpn/docker-compose.yml --profile certbot-renew up certbot-renew >> /var/log/certbot-renew.log 2>&1
+```
+
+### Start the Node
+
+```bash
+docker compose -f vpn/docker-compose.yml up -d marzban-node
+```
+
+**View logs:**
+
+```bash
+docker compose -f vpn/docker-compose.yml logs -f marzban-node
+```
+
+**Stop the node:**
+
+```bash
+docker compose -f vpn/docker-compose.yml down
+```
+
+### Connect to Marzban Panel
+
+After starting the node, add it in the Marzban panel:
+
+1. Go to **Settings → Nodes → Add Node**
+2. Set **Address** to your server IP or domain
+3. Set **Port** to `62050` (or the value of `SERVICE_PORT` in `vpn/.env`)
+4. Copy the panel certificate and paste it into the node settings
+
+### File Structure
+
+```
+vpn/
+├── docker-compose.yml   # Certbot + Marzban-node services
+├── .env.example         # Environment variable template
+├── .env                 # Your config (gitignored)
+├── xray_config.json     # Xray inbound configuration (all protocols)
+├── setup.sh             # First-run setup script
+├── data/                # Node runtime data (gitignored)
+└── certs/               # Let's Encrypt certificates (gitignored)
+```
+
+---
+
 ## 🙏 Acknowledgements
 
 Marz-X is an advanced, feature-rich customization built upon the official **Marzban** project.
