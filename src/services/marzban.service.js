@@ -5,7 +5,7 @@ const prisma = require('../utils/prisma');
 
 // Shared agents for connection pooling
 const httpAgent = new http.Agent({ keepAlive: true });
-const httpsAgent = new https.Agent({ keepAlive: true });
+const httpsAgent = new https.Agent({ keepAlive: true, rejectUnauthorized: false });
 
 class MarzbanService {
     // Auto optimization: check RAM and restart xray if needed
@@ -112,7 +112,8 @@ class MarzbanService {
       var authRes = await axios.post(this.baseUrl + '/api/admin/token', params, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         timeout: 10000,
-        maxRedirects: 0  // Prevent redirects to protect against SSRF
+        maxRedirects: 0,
+        httpsAgent: httpsAgent
       });
 
       if (authRes.data && authRes.data.access_token) {
