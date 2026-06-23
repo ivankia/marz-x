@@ -1,0 +1,43 @@
+{
+  "plans": [
+    {
+      "id": "basic",
+      "name": { "ru": "Базовый", "en": "Basic" },
+      "price": 199,
+      "currency": "RUB",
+      "durationDays": 30,
+      "dataLimitGB": 50,
+      "popular": false,
+      "features": {
+        "ru": ["50 ГБ трафика", "Все серверы", "Все протоколы"],
+        "en": ["50 GB traffic", "All servers", "All protocols"]
+      }
+    },
+    {
+      "id": "standard",
+      "name": { "ru": "Стандарт", "en": "Standard" },
+      "price": 349,
+      "currency": "RUB",
+      "durationDays": 30,
+      "dataLimitGB": 150,
+      "popular": true,
+      "features": {
+        "ru": ["150 ГБ трафика", "Все серверы", "Все протоколы", "Приоритетная поддержка"],
+        "en": ["150 GB traffic", "All servers", "All protocols", "Priority support"]
+      }
+    },
+    {
+      "id": "unlimited",
+      "name": { "ru": "Безлимит", "en": "Unlimited" },
+      "price": 599,
+      "currency": "RUB",
+      "durationDays": 30,
+      "dataLimitGB": null,
+      "popular": false,
+      "features": {
+        "ru": ["Безлимитный трафик", "Все серверы", "Все протоколы", "Приоритетная поддержка"],
+        "en": ["Unlimited traffic", "All servers", "All protocols", "Priority support"]
+      }
+    }
+  ]
+}

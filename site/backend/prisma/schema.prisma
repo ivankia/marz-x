@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  emailVerified Boolean  @default(false)
+  lang          String   @default("ru")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subscription  Subscription?
+  payments      Payment[]
+  marzbanUser   MarzbanUser?
+  refreshTokens RefreshToken[]
+  emailTokens   EmailToken[]
+}
+
+model MarzbanUser {
+  id       String @id @default(uuid())
+  username String @unique
+  userId   String @unique
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId    String
+  status    String   @default("active")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plategaId     String?  @unique
+  planId        String
+  amount        Float
+  currency      String   @default("RUB")
+  paymentMethod Int
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model EmailToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}

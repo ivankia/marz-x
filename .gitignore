@@ -1,6 +1,7 @@
 # Environment files
 .env
 vpn/.env
+haproxy/.env
 
 # VPN runtime data and TLS certs
 vpn/data/
