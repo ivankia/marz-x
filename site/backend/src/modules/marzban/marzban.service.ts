@@ -47,8 +47,8 @@ export class MarzbanService implements OnModuleInit {
 
   async authenticate() {
     const params = new URLSearchParams({
-      username: this.config.get('MARZBAN_USERNAME'),
-      password: this.config.get('MARZBAN_PASSWORD'),
+      username: this.config.get('MARZBAN_USERNAME') as string,
+      password: this.config.get('MARZBAN_PASSWORD') as string,
     });
 
     const res = await axios.post(

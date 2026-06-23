@@ -91,7 +91,9 @@ export class SubscriptionsService {
     });
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    await this.email.sendSubscriptionConfirmed(user.email, plan.name[user.lang] || plan.name.ru, expiresAt, user.lang);
+    if (user) {
+      await this.email.sendSubscriptionConfirmed(user.email, plan.name[user.lang] || plan.name.ru, expiresAt, user.lang);
+    }
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_10AM)

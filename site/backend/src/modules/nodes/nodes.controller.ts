@@ -6,7 +6,7 @@ export class NodesController {
   constructor(private nodes: NodesService) {}
 
   @Get('status')
-  getStatus() {
+  getStatus(): Promise<any[]> {
     return this.nodes.getStatus();
   }
 }
