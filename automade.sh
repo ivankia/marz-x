@@ -228,7 +228,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: marzban-postgres
+    container_name: marzx-postgres
     restart: always
     environment:
       POSTGRES_USER: postgres

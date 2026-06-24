@@ -8,6 +8,7 @@ services:
       - "3001"
     networks:
       - marzx-net
+      - site-net
 
   frontend:
     build: ./frontend
@@ -17,7 +18,11 @@ services:
       - "3000:80"
     depends_on:
       - backend
+    networks:
+      - site-net
 
 networks:
   marzx-net:
     external: true
+  site-net:
+    driver: bridge
