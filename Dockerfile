@@ -12,7 +12,7 @@ COPY src ./src
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 
-RUN npx prisma generate
+RUN DATABASE_URL=postgresql://x:x@localhost:5432/db npx prisma generate
 
 FROM nginx:alpine
 
@@ -30,9 +30,6 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
-
-
-RUN mkdir -p /app/data
 
 ENV NODE_ENV=production
 EXPOSE 80
