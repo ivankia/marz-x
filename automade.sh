@@ -92,7 +92,16 @@ echo "[BUILD] Building dashboard image from source..."
 docker build -t marz-x-dashboard:local "$SOURCE_DIR"
 echo "[OK] Image built: marz-x-dashboard:local"
 
+echo "[NET] Creating Docker network marzx-net..."
+docker network create marzx-net 2>/dev/null || echo "[OK] Network marzx-net already exists."
+
 cd $INSTALL_DIR
+
+mkdir -p postgres-init
+cat > postgres-init/01-create-databases.sql <<'SQL'
+SELECT 'CREATE DATABASE marzx_site' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'marzx_site')\gexec
+SELECT 'CREATE DATABASE marzx_dashboard' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'marzx_dashboard')\gexec
+SQL
 
 echo ""
 
@@ -141,7 +150,7 @@ NODE_ENV=production
 PORT=5000
 BACKUP_INTERVAL_MINUTES=60
 AUTO_OPTIMIZE_INTERVAL_MINUTES=${OPTIMIZE_INTERVAL}
-DATABASE_URL="postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:5432/marzx_dashboard"
+DATABASE_URL="postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/marzx_dashboard"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
 JWT_SECRET="${JWT_SECRET}"
 ENCRYPTION_KEY="${ENCRYPTION_KEY}"
@@ -221,26 +230,43 @@ services:
     image: postgres:16-alpine
     container_name: marzban-postgres
     restart: always
-    network_mode: "host"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: marzx_dashboard
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - marzx-net
 
   dashboard:
     container_name: marzban-dashboard
     image: marz-x-dashboard:local
     restart: always
-    network_mode: "host"
+    ports:
+      - "${HTTPS_PORT}:${HTTPS_PORT}"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - ./certs:/etc/letsencrypt
       - ./nginx.conf:/etc/nginx/nginx.conf
     env_file:
       - .env
+    networks:
+      - marzx-net
+
+networks:
+  marzx-net:
+    external: true
 EOF
 
 echo "[START] Starting Marzban Dashboard..."
