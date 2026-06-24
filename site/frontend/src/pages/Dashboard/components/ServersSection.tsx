@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Card, Row, Col, Badge, Button, Modal } from 'react-bootstrap';
 import { QRCodeSVG } from 'qrcode.react';
-import { useTranslation } from 'react-i18next';
+import { Modal } from 'react-bootstrap';
 
 interface Node {
   id: number;
@@ -15,9 +14,8 @@ interface Props {
 }
 
 export default function ServersSection({ subscriptionUrl, nodes }: Props) {
-  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const [qrNode, setQrNode] = useState<null | string>(null);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const handleCopy = () => {
     if (!subscriptionUrl) return;
@@ -28,61 +26,73 @@ export default function ServersSection({ subscriptionUrl, nodes }: Props) {
 
   return (
     <>
-      <Card className="border-0 shadow-sm mb-4">
-        <Card.Body className="p-4">
-          <h6 className="fw-bold mb-3">{t('dashboard.servers')}</h6>
-          <Row className="g-2 mb-4">
-            {nodes.map((node) => (
-              <Col key={node.id} xs={12} sm={6} md={4}>
-                <Card className="border-0 bg-light p-2 text-center">
-                  <div className="fw-semibold small">{node.name}</div>
-                  <Badge
-                    bg={node.status === 'connected' ? 'success' : 'danger'}
-                    className="mt-1"
-                    style={{ fontSize: '0.7rem' }}
-                  >
-                    {node.status === 'connected'
-                      ? t('landing.server_online')
-                      : t('landing.server_offline')}
-                  </Badge>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-
-          {subscriptionUrl && (
-            <>
-              <h6 className="fw-bold mb-2">{t('dashboard.subscription_link')}</h6>
-              <div className="d-flex gap-2 align-items-start">
-                <code
-                  className="flex-grow-1 p-2 bg-light rounded small"
-                  style={{ wordBreak: 'break-all', fontSize: '0.75rem' }}
-                >
-                  {subscriptionUrl}
-                </code>
+      {/* Nodes list */}
+      {nodes.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+          {nodes.map((node) => {
+            const online = node.status === 'connected';
+            return (
+              <div
+                key={node.id}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12 }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{
+                    width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
+                    background: online ? 'oklch(0.66 0.15 152)' : 'var(--faint)',
+                    boxShadow: online ? '0 0 0 3px color-mix(in oklab, oklch(0.66 0.15 152), transparent 82%)' : 'none',
+                  }} />
+                  <span style={{ fontSize: 15.5, fontWeight: 500 }}>{node.name}</span>
+                </div>
+                <span style={{
+                  fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
+                  color: online ? 'oklch(0.58 0.13 152)' : 'var(--faint)',
+                  background: online ? 'color-mix(in oklab, oklch(0.66 0.15 152), white 86%)' : 'oklch(0.96 0.005 285)',
+                }}>
+                  {online ? 'В сети' : 'Офлайн'}
+                </span>
               </div>
-              <div className="d-flex gap-2 mt-2">
-                <Button variant="outline-secondary" size="sm" onClick={handleCopy}>
-                  {copied ? t('dashboard.copied') : t('dashboard.copy')}
-                </Button>
-                <Button variant="outline-primary" size="sm" onClick={() => setQrNode(subscriptionUrl)}>
-                  {t('dashboard.show_qr')}
-                </Button>
-              </div>
-            </>
-          )}
-        </Card.Body>
-      </Card>
+            );
+          })}
+        </div>
+      )}
 
-      <Modal show={!!qrNode} onHide={() => setQrNode(null)} centered size="sm">
+      {/* Subscription URL */}
+      {subscriptionUrl && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', padding: 26 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Ссылка на подписку</div>
+          <div style={{ padding: '12px 14px', background: 'oklch(0.975 0.004 285)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 13, color: 'var(--muted)', wordBreak: 'break-all', lineHeight: 1.5 }}>
+            {subscriptionUrl}
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+            <button
+              onClick={handleCopy}
+              style={{ padding: '10px 18px', background: copied ? 'var(--accent-soft)' : 'transparent', color: copied ? 'var(--accent-d)' : 'var(--text)', border: '1px solid var(--line-strong)', borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all .15s' }}
+            >
+              {copied ? 'Скопировано' : 'Копировать'}
+            </button>
+            <button
+              onClick={() => setQrOpen(true)}
+              style={{ padding: '10px 18px', background: 'var(--accent-soft)', color: 'var(--accent-d)', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all .15s' }}
+            >
+              QR-код
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* QR modal */}
+      <Modal show={qrOpen} onHide={() => setQrOpen(false)} centered size="sm">
         <Modal.Header closeButton>
-          <Modal.Title className="fs-6">{t('dashboard.qr_code')}</Modal.Title>
+          <Modal.Title className="fs-6">QR-код подписки</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center p-4">
-          {qrNode && (
+          {subscriptionUrl && (
             <>
-              <QRCodeSVG value={qrNode} size={220} level="M" includeMargin />
-              <p className="text-muted small mt-3 mb-0">{t('dashboard.qr_hint')}</p>
+              <QRCodeSVG value={subscriptionUrl} size={220} level="M" includeMargin />
+              <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 16, marginBottom: 0 }}>
+                Отсканируйте для импорта в VPN-клиент
+              </p>
             </>
           )}
         </Modal.Body>

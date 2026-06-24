@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg: oklch(0.99 0.004 285);
+  --surface: #ffffff;
+  --line: oklch(0.925 0.006 285);
+  --line-strong: oklch(0.87 0.008 285);
+  --text: oklch(0.245 0.013 285);
+  --muted: oklch(0.52 0.012 285);
+  --faint: oklch(0.66 0.01 285);
+  --accent: #a3b234;
+  --accent-d: color-mix(in oklab, var(--accent), black 18%);
+  --accent-soft: color-mix(in oklab, var(--accent), white 90%);
+  --radius: 16px;
+  --sec: 120px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+/* Override Bootstrap primary to match accent */
+.btn-primary {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: var(--accent-d) !important;
+  border-color: var(--accent-d) !important;
+}
+.btn-outline-primary {
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:active {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+.list-group-item.active {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+.form-check-input:checked {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+/* Smooth hover for footer/nav links */
+a {
+  transition: color 0.15s;
+}

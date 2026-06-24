@@ -17,3 +17,5 @@ dist/
 *.sqlite
 *.db
 data/
+
+.DS_Store
