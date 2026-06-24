@@ -14,6 +14,5 @@ RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY prisma ./prisma
-RUN mkdir -p data
 EXPOSE 3001
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+CMD ["sh", "-c", "until npx prisma migrate deploy; do echo 'DB not ready, retrying...'; sleep 3; done && node dist/main"]

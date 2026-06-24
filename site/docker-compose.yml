@@ -4,10 +4,10 @@ services:
     container_name: vpn-backend
     restart: always
     env_file: ./backend/.env
-    volumes:
-      - ./backend/data:/app/data
     expose:
       - "3001"
+    networks:
+      - marzx-net
 
   frontend:
     build: ./frontend
@@ -17,3 +17,7 @@ services:
       - "3000:80"
     depends_on:
       - backend
+
+networks:
+  marzx-net:
+    external: true

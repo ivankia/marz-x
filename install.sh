@@ -71,13 +71,13 @@ ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
 JWT_SECRET=$(openssl rand -hex 32)
 ENCRYPTION_KEY=$(openssl rand -hex 32)
 MARZBAN_ADMIN_PASS=$(openssl rand -base64 12)
+POSTGRES_PASSWORD=$(openssl rand -hex 16)
 
 # ==============================================================================
 #                        PART 2: SSL GENERATION
 # ==============================================================================
 # NOTE: We use /root/marzban-dashboard/certs/live so it matches your marz.sh CERT_BASE variable
 INSTALL_DIR="/root/marzban-dashboard"
-mkdir -p $INSTALL_DIR/data
 mkdir -p $INSTALL_DIR/certs
 cd $INSTALL_DIR
 
@@ -135,7 +135,8 @@ NODE_ENV=production
 PORT=5000
 BACKUP_INTERVAL_MINUTES=60
 AUTO_OPTIMIZE_INTERVAL_MINUTES=${OPTIMIZE_INTERVAL}
-DATABASE_URL="file:/app/data/db.sqlite"
+DATABASE_URL="postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:5432/marzx_dashboard"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
 JWT_SECRET="${JWT_SECRET}"
 ENCRYPTION_KEY="${ENCRYPTION_KEY}"
 ADMIN_USER="${ADMIN_USER}"
@@ -207,17 +208,30 @@ http {
 }
 EOF
 
-# 3. docker-compose.yml (HOST NETWORK MODE)
+# 3. docker-compose.yml
 cat > docker-compose.yml <<EOF
 version: '3.8'
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: marzban-postgres
+    restart: always
+    network_mode: "host"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: marzx_dashboard
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+
   dashboard:
     container_name: marzban-dashboard
     image: ${DOCKER_IMAGE}
     restart: always
     network_mode: "host"
+    depends_on:
+      - postgres
     volumes:
-      - ./data:/app/data
       - ./certs:/etc/letsencrypt
       - ./nginx.conf:/etc/nginx/nginx.conf
       - /var/lib/marzban:/var/lib/marzban

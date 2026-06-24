@@ -1,18 +1,45 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: marzx-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: marzx_dashboard
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - marzx-net
+
   dashboard:
     container_name: marzban-dashboard
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     restart: always
     ports:
       - "80:80"
-    volumes:
-      - ./data:/app/data
-    
+    depends_on:
+      postgres:
+        condition: service_healthy
     env_file:
       - .env
-
     environment:
-      - DATABASE_URL=file:/app/data/db.sqlite
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/marzx_dashboard
       - NODE_ENV=production
+    networks:
+      - marzx-net
+
+networks:
+  marzx-net:
+    name: marzx-net
+
+volumes:
+  postgres-data:
