@@ -102,7 +102,7 @@ if [ -n "$SQLITE_DASHBOARD" ]; then
      FROM \"MarzbanConfig\";" \
     "$TMP/marzban_configs.csv"
 
-  run_psql "$PG_DB_DASHBOARD" "SET session_replication_role = replica;"
+  run_psql "$PG_DB_DASHBOARD" "SET session_replication_role = replica; TRUNCATE \"MarzbanConfig\", \"User\" CASCADE;"
   copy_csv "$PG_DB_DASHBOARD" "User"          "$TMP/users.csv"
   copy_csv "$PG_DB_DASHBOARD" "MarzbanConfig" "$TMP/marzban_configs.csv"
   run_psql "$PG_DB_DASHBOARD" "SET session_replication_role = DEFAULT;"
@@ -163,7 +163,7 @@ if [ -n "$SQLITE_SITE" ]; then
      FROM \"EmailToken\";" \
     "$TMP/email_tokens.csv"
 
-  run_psql "$PG_DB_SITE" "SET session_replication_role = replica;"
+  run_psql "$PG_DB_SITE" "SET session_replication_role = replica; TRUNCATE \"EmailToken\", \"RefreshToken\", \"Payment\", \"Subscription\", \"MarzbanUser\", \"User\" CASCADE;"
   copy_csv "$PG_DB_SITE" "User"         "$TMP/users.csv"
   copy_csv "$PG_DB_SITE" "MarzbanUser"  "$TMP/marzban_users.csv"
   copy_csv "$PG_DB_SITE" "Subscription" "$TMP/subscriptions.csv"
