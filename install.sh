@@ -6,8 +6,6 @@ set -e
 # ==============================================================================
 #                               PRE-CHECKS & SETUP
 # ==============================================================================
-DOCKER_IMAGE="malindamalshan/marzban-dashboard:latest"
-
 # Root Check
 if [ "$EUID" -ne 0 ]; then
   echo "[X] Please run as root (sudo)"
@@ -78,7 +76,13 @@ POSTGRES_PASSWORD=$(openssl rand -hex 16)
 # ==============================================================================
 # NOTE: We use /root/marzban-dashboard/certs/live so it matches your marz.sh CERT_BASE variable
 INSTALL_DIR="/root/marzban-dashboard"
+SOURCE_DIR="$(pwd)"
 mkdir -p $INSTALL_DIR/certs
+
+echo "[BUILD] Building dashboard image from source..."
+docker build -t marz-x-dashboard:local "$SOURCE_DIR"
+echo "[OK] Image built: marz-x-dashboard:local"
+
 cd $INSTALL_DIR
 
 echo ""
@@ -226,7 +230,7 @@ services:
 
   dashboard:
     container_name: marzban-dashboard
-    image: ${DOCKER_IMAGE}
+    image: marz-x-dashboard:local
     restart: always
     network_mode: "host"
     depends_on:
@@ -240,7 +244,6 @@ services:
 EOF
 
 echo "[START] Starting Marzban Dashboard..."
-docker compose pull
 docker compose up -d
 echo "[OK] Dashboard is running at https://$DOMAIN_NAME:$HTTPS_PORT"
 
@@ -344,17 +347,15 @@ while true; do
                     echo -e "${YELLOW}No SSL certificate found. You may need to re-run installation for certificate setup.${NC}"
                 fi
                 
-                # Update docker-compose.yml to ensure it uses :latest
-                echo -e "${YELLOW}Updating docker-compose.yml to use latest image...${NC}"
-                sed -i 's|image: malindamalshan/marzban-dashboard:.*|image: malindamalshan/marzban-dashboard:latest|g' "$DASH_DIR/docker-compose.yml"
-                
-                # Pull latest image fresh
-                echo -e "${YELLOW}Pulling latest dashboard image...${NC}"
-                docker pull malindamalshan/marzban-dashboard:latest
-                
+                # Rebuild image from source
+                echo -e "${YELLOW}Rebuilding dashboard image from source...${NC}"
+                docker build -t marz-x-dashboard:local "$DASH_DIR/../marz-x" 2>/dev/null || \
+                docker build -t marz-x-dashboard:local "$(dirname "$DASH_DIR")/marz-x" 2>/dev/null || \
+                { echo -e "${RED}[X] Could not find marz-x source directory. Run install.sh again.${NC}"; wait_key; continue; }
+
                 # Recreate and start container with fresh image
                 echo -e "${YELLOW}Starting dashboard with latest image...${NC}"
-                docker compose up -d --pull always --force-recreate
+                docker compose up -d --force-recreate
                 
                 echo -e "${GREEN}[OK] Dashboard updated successfully!${NC}"
                 

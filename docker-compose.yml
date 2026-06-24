@@ -22,6 +22,7 @@ services:
 
   dashboard:
     container_name: marzban-dashboard
+    image: marz-x-dashboard:local
     build:
       context: .
       dockerfile: Dockerfile
