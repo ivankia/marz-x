@@ -1,5 +1,6 @@
 #!/bin/bash
 # Migrate production data from SQLite to PostgreSQL.
+# Prisma stores DateTime as Unix milliseconds in SQLite — converts to ISO on export.
 #
 # Usage:
 #   ./migrate-sqlite-to-pg.sh [--dashboard-sqlite <path>] [--site-sqlite <path>]
@@ -7,7 +8,7 @@
 # Environment variables (override defaults):
 #   PG_HOST, PG_PORT, PG_USER, PG_PASSWORD
 #
-# Example (run on the server after starting postgres):
+# Example:
 #   PG_PASSWORD=secret ./migrate-sqlite-to-pg.sh \
 #     --dashboard-sqlite /root/marzban-dashboard/data/db.sqlite \
 #     --site-sqlite /root/vpn-site/backend/data/db.sqlite
@@ -50,6 +51,9 @@ fi
 
 export PGPASSWORD="$PG_PASSWORD"
 
+# ts(col) — converts Unix-ms integer to ISO timestamp string
+ts() { echo "CASE WHEN \"$1\" IS NULL THEN NULL ELSE datetime(\"$1\"/1000,'unixepoch') END"; }
+
 run_psql() {
   psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$1" -c "$2"
 }
@@ -60,12 +64,12 @@ copy_csv() {
     -c "\COPY \"$table\" FROM '$file' CSV NULL ''"
 }
 
-export_table() {
-  local sqlite_file="$1" table="$2" out="$3"
-  sqlite3 -csv "$sqlite_file" "SELECT * FROM \"$table\";" > "$out"
+export_query() {
+  local sqlite_file="$1" query="$2" out="$3"
+  sqlite3 -csv "$sqlite_file" "$query" > "$out"
   local rows
   rows=$(wc -l < "$out")
-  echo "  Exported $rows rows from $table"
+  echo "  Exported $rows rows → $(basename "$out")"
 }
 
 # ── Dashboard ────────────────────────────────────────────────────────────────
@@ -79,15 +83,28 @@ if [ -n "$SQLITE_DASHBOARD" ]; then
   echo "[DASHBOARD] Migrating $SQLITE_DASHBOARD → $PG_DB_DASHBOARD"
   TMP=$(mktemp -d)
 
-  export_table "$SQLITE_DASHBOARD" "User"          "$TMP/users.csv"
-  export_table "$SQLITE_DASHBOARD" "MarzbanConfig" "$TMP/marzban_configs.csv"
+  export_query "$SQLITE_DASHBOARD" \
+    "SELECT \"id\",\"email\",\"username\",\"password\",\"name\",
+            datetime(\"createdAt\"/1000,'unixepoch'),
+            datetime(\"updatedAt\"/1000,'unixepoch')
+     FROM \"User\";" \
+    "$TMP/users.csv"
 
-  # Disable FK checks temporarily
+  export_query "$SQLITE_DASHBOARD" \
+    "SELECT \"id\",\"name\",\"endpointUrl\",\"marzbanUsername\",
+            \"encryptedPassword\",\"encryptedAccessToken\",
+            CASE WHEN \"tokenExpiresAt\" IS NULL THEN NULL
+                 ELSE datetime(\"tokenExpiresAt\"/1000,'unixepoch') END,
+            \"isActive\",
+            datetime(\"createdAt\"/1000,'unixepoch'),
+            datetime(\"updatedAt\"/1000,'unixepoch'),
+            \"userId\"
+     FROM \"MarzbanConfig\";" \
+    "$TMP/marzban_configs.csv"
+
   run_psql "$PG_DB_DASHBOARD" "SET session_replication_role = replica;"
-
   copy_csv "$PG_DB_DASHBOARD" "User"          "$TMP/users.csv"
   copy_csv "$PG_DB_DASHBOARD" "MarzbanConfig" "$TMP/marzban_configs.csv"
-
   run_psql "$PG_DB_DASHBOARD" "SET session_replication_role = DEFAULT;"
 
   rm -rf "$TMP"
@@ -105,22 +122,54 @@ if [ -n "$SQLITE_SITE" ]; then
   echo "[SITE] Migrating $SQLITE_SITE → $PG_DB_SITE"
   TMP=$(mktemp -d)
 
-  export_table "$SQLITE_SITE" "User"         "$TMP/users.csv"
-  export_table "$SQLITE_SITE" "MarzbanUser"  "$TMP/marzban_users.csv"
-  export_table "$SQLITE_SITE" "Subscription" "$TMP/subscriptions.csv"
-  export_table "$SQLITE_SITE" "Payment"      "$TMP/payments.csv"
-  export_table "$SQLITE_SITE" "RefreshToken" "$TMP/refresh_tokens.csv"
-  export_table "$SQLITE_SITE" "EmailToken"   "$TMP/email_tokens.csv"
+  export_query "$SQLITE_SITE" \
+    "SELECT \"id\",\"email\",\"passwordHash\",\"emailVerified\",\"lang\",
+            datetime(\"createdAt\"/1000,'unixepoch'),
+            datetime(\"updatedAt\"/1000,'unixepoch')
+     FROM \"User\";" \
+    "$TMP/users.csv"
+
+  export_query "$SQLITE_SITE" \
+    "SELECT \"id\",\"username\",\"userId\" FROM \"MarzbanUser\";" \
+    "$TMP/marzban_users.csv"
+
+  export_query "$SQLITE_SITE" \
+    "SELECT \"id\",\"userId\",\"planId\",\"status\",
+            datetime(\"expiresAt\"/1000,'unixepoch'),
+            datetime(\"createdAt\"/1000,'unixepoch'),
+            datetime(\"updatedAt\"/1000,'unixepoch')
+     FROM \"Subscription\";" \
+    "$TMP/subscriptions.csv"
+
+  export_query "$SQLITE_SITE" \
+    "SELECT \"id\",\"userId\",\"plategaId\",\"planId\",\"amount\",\"currency\",
+            \"paymentMethod\",\"status\",
+            datetime(\"createdAt\"/1000,'unixepoch'),
+            datetime(\"updatedAt\"/1000,'unixepoch')
+     FROM \"Payment\";" \
+    "$TMP/payments.csv"
+
+  export_query "$SQLITE_SITE" \
+    "SELECT \"id\",\"token\",\"userId\",
+            datetime(\"expiresAt\"/1000,'unixepoch'),
+            datetime(\"createdAt\"/1000,'unixepoch')
+     FROM \"RefreshToken\";" \
+    "$TMP/refresh_tokens.csv"
+
+  export_query "$SQLITE_SITE" \
+    "SELECT \"id\",\"token\",\"userId\",\"type\",
+            datetime(\"expiresAt\"/1000,'unixepoch'),
+            datetime(\"createdAt\"/1000,'unixepoch')
+     FROM \"EmailToken\";" \
+    "$TMP/email_tokens.csv"
 
   run_psql "$PG_DB_SITE" "SET session_replication_role = replica;"
-
   copy_csv "$PG_DB_SITE" "User"         "$TMP/users.csv"
   copy_csv "$PG_DB_SITE" "MarzbanUser"  "$TMP/marzban_users.csv"
   copy_csv "$PG_DB_SITE" "Subscription" "$TMP/subscriptions.csv"
   copy_csv "$PG_DB_SITE" "Payment"      "$TMP/payments.csv"
   copy_csv "$PG_DB_SITE" "RefreshToken" "$TMP/refresh_tokens.csv"
   copy_csv "$PG_DB_SITE" "EmailToken"   "$TMP/email_tokens.csv"
-
   run_psql "$PG_DB_SITE" "SET session_replication_role = DEFAULT;"
 
   rm -rf "$TMP"
